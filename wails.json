@@ -1,0 +1,29 @@
+{
+  "name": "StockMonitor",
+  "outputfilename": "StockMonitor",
+  "frontend:install": "npm install",
+  "frontend:build": "npm run build",
+  "frontend:dev:watcher": "npm run dev",
+  "frontend:dev:serverUrl": "auto",
+  "author": {
+    "name": "Your Name",
+    "email": "you@example.com"
+  },
+  "info": {
+    "companyName": "StockMonitor",
+    "productName": "小助手",
+    "productVersion": "1.0.0",
+    "copyright": "Copyright © 2023 StockMonitor",
+    "comments": "股票实时监控应用"
+  },
+  "windows": {
+    "width": 300,
+    "height": 150,
+    "minWidth": 300,
+    "minHeight": 150,
+    "resizable": true,
+    "disableWindowIcon": false,
+    "webviewIsTransparent": false,
+    "windowIsTranslucent": false
+  }
+}
