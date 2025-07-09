@@ -12,10 +12,10 @@
     <div v-if="stockData" class="stock-display">
       <div class="stock-header">
         <h2>{{ stockData.name }} ({{ stockData.code }})</h2>
-        <div class="market-status" :class="marketStatusClass">
+        <div v-show="!isSmallWindow" class="market-status" :class="marketStatusClass">
           {{ stockData.marketStatus || '未知' }}
         </div>
-        <div class="time-display">最后更新: {{ lastUpdateTime }}</div>
+        <div v-show="!isSmallWindow" class="time-display">最后更新: {{ lastUpdateTime }}</div>
       </div>
       
       <div class="price-container" :class="priceChangeClass">
@@ -29,18 +29,21 @@
         
         <div class="change-info">
           <span v-if="priceChange > 0" class="up">
-            +{{ formatNumber(stockData.change) }} ({{ formatNumber(stockData.changePct) }}%)
+            <span v-show="!isSmallWindow">+</span>{{ formatNumber(stockData.change) }} 
+            <span v-show="!isSmallWindow">({{ formatNumber(stockData.changePct) }}%)</span>
           </span>
           <span v-else-if="priceChange < 0" class="down">
-            {{ formatNumber(stockData.change) }} ({{ formatNumber(stockData.changePct) }}%)
+            {{ formatNumber(stockData.change) }} 
+            <span v-show="!isSmallWindow">({{ formatNumber(stockData.changePct) }}%)</span>
           </span>
           <span v-else class="neutral">
-            {{ formatNumber(stockData.change) }} ({{ formatNumber(stockData.changePct) }}%)
+            {{ formatNumber(stockData.change) }} 
+            <span v-show="!isSmallWindow">({{ formatNumber(stockData.changePct) }}%)</span>
           </span>
         </div>
       </div>
       
-      <div class="details-toggle" @click="toggleDetails">
+      <div class="details-toggle" @click="toggleDetails" v-show="!isSmallWindow || showDetails">
         <span>{{ showDetails ? '收起详情' : '查看详情' }}</span>
         <span class="toggle-icon">{{ showDetails ? '▲' : '▼' }}</span>
       </div>
@@ -48,38 +51,38 @@
       <transition name="slide">
         <div v-if="showDetails" class="stock-details">
           <div class="detail-row">
-            <div class="detail-item">
+            <div class="detail-item" :class="{compact: isSmallWindow}">
               <div class="detail-label">开盘价</div>
               <div class="detail-value">{{ formatNumber(stockData.open) }}</div>
             </div>
-            <div class="detail-item">
+            <div class="detail-item" :class="{compact: isSmallWindow}">
               <div class="detail-label">昨收价</div>
               <div class="detail-value">{{ formatNumber(stockData.prevClose) }}</div>
             </div>
-            <div class="detail-item">
+            <div class="detail-item" :class="{compact: isSmallWindow}">
               <div class="detail-label">最高价</div>
               <div class="detail-value">{{ formatNumber(stockData.high) }}</div>
             </div>
-            <div class="detail-item">
+            <div class="detail-item" :class="{compact: isSmallWindow}">
               <div class="detail-label">最低价</div>
               <div class="detail-value">{{ formatNumber(stockData.low) }}</div>
             </div>
           </div>
           
           <div class="detail-row">
-            <div class="detail-item">
+            <div class="detail-item" :class="{compact: isSmallWindow}">
               <div class="detail-label">成交量</div>
               <div class="detail-value">{{ formatVolume(stockData.volume) }}</div>
             </div>
-            <div class="detail-item">
+            <div class="detail-item" :class="{compact: isSmallWindow}">
               <div class="detail-label">成交额</div>
               <div class="detail-value">{{ formatAmount(stockData.amount) }}</div>
             </div>
-            <div class="detail-item">
+            <div class="detail-item" :class="{compact: isSmallWindow}">
               <div class="detail-label">买入价</div>
               <div class="detail-value">{{ formatNumber(stockData.bid) }}</div>
             </div>
-            <div class="detail-item">
+            <div class="detail-item" :class="{compact: isSmallWindow}">
               <div class="detail-label">卖出价</div>
               <div class="detail-value">{{ formatNumber(stockData.ask) }}</div>
             </div>
@@ -115,8 +118,23 @@
 </template>
 
 <script setup>
-  import { ref, computed, onBeforeUnmount } from 'vue';
+  import { ref, computed, onBeforeUnmount, onMounted } from 'vue';
   import { GetStockData } from '../../wailsjs/go/main/App';
+  
+  // 窗口大小状态
+  const isSmallWindow = ref(false);
+  const checkWindowSize = () => {
+    isSmallWindow.value = window.innerWidth < 200 && window.innerHeight < 200;
+  };
+  
+  onMounted(() => {
+    checkWindowSize();
+    window.addEventListener('resize', checkWindowSize);
+  });
+  
+  onBeforeUnmount(() => {
+    window.removeEventListener('resize', checkWindowSize);
+  });
 
   const stockCode = ref('sh601606');
   const stockData = ref(null);
@@ -437,6 +455,21 @@ input:focus {
   border-radius: var(--border-radius);
   background-color: var(--bg-light);
   margin: 0 var(--spacing-xs);
+  transition: all 0.3s ease;
+  
+  &.compact {
+    padding: var(--spacing-xs);
+    margin: 0 2px;
+    
+    .detail-label {
+      font-size: 0.8em;
+      margin-bottom: 2px;
+    }
+    
+    .detail-value {
+      font-size: 0.9em;
+    }
+  }
 }
 
 .detail-label {
