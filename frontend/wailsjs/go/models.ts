@@ -1,3 +1,26 @@
+export namespace settings {
+	
+	export class Settings {
+	    theme: string;
+	    backgroundColor: string;
+	    textColor: string;
+	    accentColor: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new Settings(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.theme = source["theme"];
+	        this.backgroundColor = source["backgroundColor"];
+	        this.textColor = source["textColor"];
+	        this.accentColor = source["accentColor"];
+	    }
+	}
+
+}
+
 export namespace stock {
 	
 	export class StockData {
