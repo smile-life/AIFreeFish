@@ -2,7 +2,9 @@ package settings
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 )
@@ -70,35 +72,59 @@ func NewService() *Service {
 func (s *Service) LoadSettings() error {
 	// 检查设置文件是否存在
 	if _, err := os.Stat(s.settingsPath); os.IsNotExist(err) {
+		log.Println("设置文件不存在，创建默认设置")
 		// 如果不存在，保存默认设置
-		return s.SaveSettings()
+		if err := s.SaveSettings(); err != nil {
+			log.Printf("保存默认设置失败: %v", err)
+			return fmt.Errorf("保存默认设置失败: %w", err)
+		}
+		log.Println("默认设置已创建")
+		return nil
 	}
 
 	// 读取设置文件
 	data, err := ioutil.ReadFile(s.settingsPath)
 	if err != nil {
-		return err
+		log.Printf("读取设置文件失败: %v", err)
+		return fmt.Errorf("读取设置文件失败: %w", err)
 	}
 
 	// 解析JSON
 	err = json.Unmarshal(data, &s.settings)
 	if err != nil {
-		return err
+		log.Printf("解析设置JSON失败: %v", err)
+		return fmt.Errorf("解析设置JSON失败: %w", err)
 	}
 
+	log.Println("设置加载成功")
 	return nil
 }
 
 // SaveSettings 保存设置到文件
 func (s *Service) SaveSettings() error {
+	// 确保目录存在
+	dir := filepath.Dir(s.settingsPath)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		log.Printf("创建设置目录失败: %v", err)
+		return fmt.Errorf("创建设置目录失败: %w", err)
+	}
+
 	// 将设置转换为JSON
 	data, err := json.MarshalIndent(s.settings, "", "  ")
 	if err != nil {
-		return err
+		log.Printf("序列化设置失败: %v", err)
+		return fmt.Errorf("序列化设置失败: %w", err)
 	}
 
 	// 写入文件
-	return ioutil.WriteFile(s.settingsPath, data, 0644)
+	err = ioutil.WriteFile(s.settingsPath, data, 0644)
+	if err != nil {
+		log.Printf("写入设置文件失败: %v", err)
+		return fmt.Errorf("写入设置文件失败: %w", err)
+	}
+
+	log.Println("设置保存成功")
+	return nil
 }
 
 // GetSettings 获取当前设置

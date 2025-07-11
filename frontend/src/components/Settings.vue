@@ -118,7 +118,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
 import { GetSettings, UpdateSettings, UpdateTheme, UpdateColors } from '../../wailsjs/go/main/App';
 
 // 组件状态
@@ -144,10 +144,22 @@ const customThemeStyle = computed(() => {
 const loadSettings = async () => {
   try {
     const savedSettings = await GetSettings();
-    settings.value = savedSettings;
-    applyTheme(savedSettings.theme);
+    if (savedSettings) {
+      settings.value = {
+        theme: savedSettings.theme || 'light',
+        backgroundColor: savedSettings.backgroundColor || '#ffffff',
+        textColor: savedSettings.textColor || '#000000',
+        accentColor: savedSettings.accentColor || '#3498db'
+      };
+      await applyTheme(settings.value.theme);
+    }
   } catch (error) {
     console.error('加载设置失败:', error);
+    window.runtime.EventsEmit('show-toast', {
+      message: '加载设置失败',
+      type: 'error',
+      duration: 3000
+    });
   }
 };
 
@@ -155,22 +167,78 @@ const loadSettings = async () => {
 const saveSettings = async () => {
   try {
     await UpdateSettings(settings.value);
-    applyTheme(settings.value.theme);
+    await applyTheme(settings.value.theme);
+    
+    window.runtime.EventsEmit('show-toast', {
+      message: '设置已保存',
+      type: 'success',
+      duration: 2000
+    });
+    
     close();
   } catch (error) {
     console.error('保存设置失败:', error);
+    window.runtime.EventsEmit('show-toast', {
+      message: '保存设置失败: ' + error.message,
+      type: 'error',
+      duration: 3000
+    });
   }
 };
+
+// 键盘事件处理
+const onKeyDown = (e) => {
+  if (e.key === 'Escape') {
+    close();
+  } else if (e.key === 's' && (e.ctrlKey || e.metaKey)) {
+    e.preventDefault();
+    saveSettings();
+  }
+};
+
+// 组件生命周期
+onMounted(async () => {
+  // 确保DOM完全加载后再应用主题
+  await nextTick();
+  await loadSettings();
+  
+  window.addEventListener('keydown', onKeyDown);
+  
+  // 监听打开主题设置事件
+  window.runtime.EventsOn('open-theme-settings', () => {
+    console.log('open-theme-settings');
+    open('theme');
+  });
+  
+  // 监听打开颜色设置事件
+  window.runtime.EventsOn('open-color-settings', () => {
+    open('colors');
+  });
+});
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', onKeyDown);
+  window.runtime.EventsOff('open-theme-settings');
+  window.runtime.EventsOff('open-color-settings');
+});
 
 // 选择主题
 const selectTheme = async (theme) => {
   settings.value.theme = theme;
-  applyTheme(theme);
   
   try {
-    await UpdateTheme(theme);
+    const success = await applyTheme(theme);
+    if (success) {
+      await UpdateTheme(theme);
+      console.log(`主题已切换为: ${theme}`);
+    }
   } catch (error) {
     console.error('更新主题失败:', error);
+    window.runtime.EventsEmit('show-toast', {
+      message: '更新主题失败',
+      type: 'error',
+      duration: 3000
+    });
   }
 };
 
@@ -186,33 +254,58 @@ const updateColors = async () => {
       settings.value.textColor,
       settings.value.accentColor
     );
-    applyTheme('custom');
+    const success = await applyTheme('custom');
+    if (success) {
+      console.log('自定义颜色已应用');
+    }
   } catch (error) {
     console.error('更新颜色失败:', error);
+    window.runtime.EventsEmit('show-toast', {
+      message: '更新颜色失败',
+      type: 'error',
+      duration: 3000
+    });
   }
 };
 
 // 应用主题
-const applyTheme = (theme) => {
+const applyTheme = async (theme) => {
   const root = document.documentElement;
   
-  if (theme === 'light') {
-    root.style.setProperty('--background-color', '#ffffff');
-    root.style.setProperty('--text-color', '#2c3e50');
-    root.style.setProperty('--primary-color', '#3498db');
-    root.style.setProperty('--secondary-color', '#2c3e50');
-    root.style.setProperty('--border-color', '#ddd');
-  } else if (theme === 'dark') {
-    root.style.setProperty('--background-color', '#1a1a1a');
-    root.style.setProperty('--text-color', '#ecf0f1');
-    root.style.setProperty('--primary-color', '#3498db');
-    root.style.setProperty('--secondary-color', '#ecf0f1');
-    root.style.setProperty('--border-color', '#444');
-  } else if (theme === 'custom') {
-    root.style.setProperty('--background-color', settings.value.backgroundColor);
-    root.style.setProperty('--text-color', settings.value.textColor);
-    root.style.setProperty('--primary-color', settings.value.accentColor);
-    root.style.setProperty('--secondary-color', settings.value.textColor);
+  try {
+    if (theme === 'light') {
+      root.style.setProperty('--background-color', '#ffffff');
+      root.style.setProperty('--text-color', '#2c3e50');
+      root.style.setProperty('--primary-color', '#3498db');
+      root.style.setProperty('--secondary-color', '#2c3e50');
+      root.style.setProperty('--border-color', '#ddd');
+      root.style.setProperty('--accent-color', '#3498db');
+    } else if (theme === 'dark') {
+      root.style.setProperty('--background-color', '#1a1a1a');
+      root.style.setProperty('--text-color', '#ffffff');
+      root.style.setProperty('--primary-color', '#3498db');
+      root.style.setProperty('--secondary-color', '#ffffff');
+      root.style.setProperty('--border-color', '#444');
+      root.style.setProperty('--accent-color', '#3498db');
+    } else if (theme === 'custom') {
+      root.style.setProperty('--background-color', settings.value.backgroundColor);
+      root.style.setProperty('--text-color', settings.value.textColor);
+      root.style.setProperty('--primary-color', settings.value.accentColor);
+      root.style.setProperty('--secondary-color', settings.value.textColor);
+      root.style.setProperty('--accent-color', settings.value.accentColor);
+    }
+    
+    // 应用过渡效果
+    document.body.style.transition = 'background-color 0.3s, color 0.3s';
+    
+    // 应用主题类
+    document.body.classList.remove('light-theme', 'dark-theme', 'custom-theme');
+    document.body.classList.add(`${theme}-theme`);
+    
+    return true;
+  } catch (error) {
+    console.error('应用主题失败:', error);
+    return false;
   }
 };
 
@@ -227,21 +320,7 @@ const open = (tab = 'theme') => {
   isVisible.value = true;
 };
 
-// 监听事件
-onMounted(() => {
-  loadSettings();
-  
-  // 监听打开主题设置事件
-  window.runtime.EventsOn('open-theme-settings', () => {
-    console.log('open-theme-settings');
-    open('theme');
-  });
-  
-  // 监听打开颜色设置事件
-  window.runtime.EventsOn('open-color-settings', () => {
-    open('colors');
-  });
-});
+// 删除重复的onMounted钩子
 
 // 导出方法供父组件调用
 defineExpose({

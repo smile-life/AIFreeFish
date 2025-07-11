@@ -205,7 +205,13 @@
   const fetchStockData = async () => {
     try {
       isLoading.value = true;
+      error.value = '';
       const data = await GetStockData(stockCode.value);
+      
+      // 验证数据完整性
+      if (!data || !data.code || !data.name || data.price === undefined) {
+        throw new Error('返回的股票数据不完整');
+      }
       
       // 计算价格变化
       if (stockData.value && stockData.value.price) {
@@ -219,9 +225,19 @@
       lastUpdateTime.value = new Date().toLocaleTimeString();
     } catch (err) {
       error.value = `获取数据失败: ${err.message || err}`;
+      stockData.value = null;
+      emitErrorToast(error.value);
     } finally {
       isLoading.value = false;
     }
+  };
+
+  const emitErrorToast = (message) => {
+    window.runtime?.EventsEmit('show-toast', {
+      message,
+      type: 'error',
+      duration: 3000
+    });
   };
 
   // 格式化数字
@@ -338,15 +354,78 @@ input:focus {
 }
 
 .stock-display {
-  background: white;
   border-radius: var(--border-radius);
-  box-shadow: 0 var(--spacing-xs) var(--spacing-md) rgba(0, 0, 0, 0.1);
-  padding: var(--spacing-md) 0 var(--spacing-md) 0; /* 完全移除左右内边距，只保留上下内边距 */
+  padding: var(--spacing-md) 0 var(--spacing-md) 0;
   margin-top: var(--spacing-sm);
-  margin-left: 0; /* 确保股票显示区域紧贴左边 */
-  margin-right: 0; /* 确保股票显示区域紧贴右边 */
-  color: var(--secondary-color); /* 添加文本颜色，确保在白色背景上可见 */
-  
+  margin-left: 0;
+  margin-right: 0;
+  color: var(--text-color);
+  /* 减轻模糊效果 */
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+/* 亮色主题样式 */
+body.light-theme .stock-display {
+  background: rgba(0, 0, 0, 0.03);
+  box-shadow: 0 var(--spacing-xs) var(--spacing-md) rgba(0, 0, 0, 0.1),
+              0 0 0 1px rgba(0, 0, 0, 0.05);
+}
+
+/* 暗色主题样式 */
+body.dark-theme .stock-display,
+body.custom-theme .stock-display {
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: 0 var(--spacing-xs) var(--spacing-md) rgba(0, 0, 0, 0.5),
+              0 0 0 1px rgba(255, 255, 255, 0.1),
+              inset 0 0 20px rgba(0, 0, 0, 0.15);
+}
+
+.stock-display::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  opacity: 0.3;
+  transform: rotate(30deg);
+  pointer-events: none;
+}
+
+/* 亮色主题光泽效果 */
+body.light-theme .stock-display::before {
+  background: radial-gradient(circle, rgba(0, 0, 0, 0.02) 0%, rgba(0, 0, 0, 0) 70%);
+}
+
+/* 暗色主题光泽效果 */
+body.dark-theme .stock-display::before,
+body.custom-theme .stock-display::before {
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0) 70%);
+}
+
+.stock-display::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  pointer-events: none;
+}
+
+/* 亮色主题边缘高光 */
+body.light-theme .stock-display::after {
+  background: linear-gradient(to right, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0));
+}
+
+/* 暗色主题边缘高光 */
+body.dark-theme .stock-display::after,
+body.custom-theme .stock-display::after {
+  background: linear-gradient(to right, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0));
 }
 
 .stock-header {
@@ -400,40 +479,91 @@ input:focus {
 
 .price-container {
   text-align: center;
-  padding: var(--spacing-md) 0;
+  padding: var(--spacing-md) var(--spacing-sm);
   border-radius: var(--border-radius);
-  transition: background-color 0.5s;
-  margin-left: 0; /* 确保价格容器紧贴左边 */
+  transition: all 0.5s ease;
+  margin: 0 var(--spacing-sm); /* 添加左右边距，使其不紧贴边缘 */
+  background-color: rgba(255, 255, 255, 0.1); /* 增加背景色不透明度 */
+  border: 1px solid rgba(255, 255, 255, 0.15); /* 增加边框不透明度 */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2), /* 外阴影 */
+              inset 0 1px 0 rgba(255, 255, 255, 0.1); /* 顶部内阴影，创造光泽效果 */
+  position: relative; /* 为伪元素定位做准备 */
+  overflow: hidden; /* 隐藏溢出的伪元素 */
+}
+
+/* 添加微妙的渐变背景 */
+.price-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(to bottom, 
+                             rgba(255, 255, 255, 0.05) 0%, 
+                             rgba(0, 0, 0, 0.05) 100%);
+  pointer-events: none; /* 确保不会干扰鼠标事件 */
+}
+
+/* 价格容器的状态样式 */
+.price-container.up {
+  background-color: rgba(231, 76, 60, 0.15); /* 红色背景 */
+  border-color: rgba(231, 76, 60, 0.3);
+  box-shadow: 0 4px 12px rgba(231, 76, 60, 0.2),
+              inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.price-container.down {
+  background-color: rgba(39, 174, 96, 0.15); /* 绿色背景 */
+  border-color: rgba(39, 174, 96, 0.3);
+  box-shadow: 0 4px 12px rgba(39, 174, 96, 0.2),
+              inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 .up {
   color: var(--error-color);
-  background-color: rgba(231, 76, 60, 0.05);
+  background-color: rgba(231, 76, 60, 0.15); /* 增加背景色不透明度 */
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--border-radius);
+  text-shadow: 0 0 5px rgba(231, 76, 60, 0.5); /* 添加文本阴影 */
 }
 
 .down {
   color: var(--success-color);
-  background-color: rgba(39, 174, 96, 0.05);
+  background-color: rgba(39, 174, 96, 0.15); /* 增加背景色不透明度 */
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--border-radius);
+  text-shadow: 0 0 5px rgba(39, 174, 96, 0.5); /* 添加文本阴影 */
 }
 
 .neutral {
-  color: #7f8c8d;
+  color: #bdc3c7; /* 使用更亮的灰色 */
+  background-color: rgba(127, 140, 141, 0.1);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--border-radius);
 }
 
 .current-price {
   font-size: var(--font-size-xl);
   font-weight: bold;
   margin-bottom: var(--spacing-xs);
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.3); /* 添加文本阴影，增强可见性 */
 }
 
 .change-indicator {
   font-size: var(--font-size-lg);
   vertical-align: middle;
+  margin-left: var(--spacing-xs);
+  display: inline-block;
+  text-shadow: 0 0 5px currentColor; /* 添加与当前颜色相同的文本阴影 */
 }
 
 .change-info {
   font-size: var(--font-size-md);
   font-weight: 500;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--border-radius);
+  display: inline-block; /* 使背景色只包围文本 */
 }
 
 .stock-details {
@@ -446,6 +576,10 @@ input:focus {
   display: flex;
   justify-content: space-between;
   margin-bottom: var(--spacing-sm);
+  background-color: rgba(0, 0, 0, 0.2); /* 添加轻微背景色，增强层次感 */
+  border-radius: var(--border-radius);
+  padding: var(--spacing-sm);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3); /* 添加内阴影，增强层次感 */
 }
 
 .detail-item {
@@ -453,9 +587,17 @@ input:focus {
   text-align: center;
   padding: var(--spacing-sm);
   border-radius: var(--border-radius);
-  background-color: var(--bg-light);
+  background-color: rgba(255, 255, 255, 0.07); /* 调整背景色不透明度 */
+  border: 1px solid rgba(255, 255, 255, 0.15); /* 增加边框不透明度 */
   margin: 0 var(--spacing-xs);
   transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2); /* 添加阴影 */
+  
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.12); /* 悬停时增加背景色不透明度 */
+    transform: translateY(-2px); /* 悬停时轻微上移 */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); /* 悬停时增加阴影 */
+  }
   
   &.compact {
     padding: var(--spacing-xs);
@@ -474,13 +616,39 @@ input:focus {
 
 .detail-label {
   font-size: var(--font-size-xs);
-  color: #7f8c8d;
   margin-bottom: var(--spacing-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 500; /* 增加字重提高可读性 */
+}
+
+/* 亮色主题标签颜色 */
+body.light-theme .detail-label {
+  color: rgba(0, 0, 0, 0.7);
+}
+
+/* 暗色主题标签颜色 */
+body.dark-theme .detail-label,
+body.custom-theme .detail-label {
+  color: rgba(255, 255, 255, 0.85);
 }
 
 .detail-value {
   font-size: var(--font-size-sm);
-  font-weight: 500;
+  font-weight: 600;
+}
+
+/* 亮色主题值样式 */
+body.light-theme .detail-value {
+  /* 亮色主题不需要文本阴影 */
+  text-shadow: none;
+}
+
+/* 暗色主题值样式 */
+body.dark-theme .detail-value,
+body.custom-theme .detail-value {
+  /* 暗色主题减轻文本阴影 */
+  text-shadow: 0 0 5px rgba(255, 255, 255, 0.1);
 }
 
 .volume {
@@ -512,14 +680,20 @@ input:focus {
   margin-top: var(--spacing-sm);
   cursor: pointer;
   color: var(--primary-color);
-  font-weight: 500;
+  font-weight: 600; /* 增加字重 */
   border-radius: var(--border-radius);
-  transition: background-color 0.3s;
+  transition: all 0.3s ease; /* 修改过渡效果 */
   font-size: var(--font-size-sm);
+  background-color: rgba(52, 152, 219, 0.1); /* 添加轻微背景色 */
+  border: 1px solid rgba(52, 152, 219, 0.2); /* 添加边框 */
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* 添加阴影 */
+  text-shadow: 0 0 5px rgba(52, 152, 219, 0.3); /* 添加文本阴影 */
 }
 
 .details-toggle:hover {
-  background-color: rgba(52, 152, 219, 0.1);
+  background-color: rgba(52, 152, 219, 0.2); /* 增加背景色不透明度 */
+  transform: translateY(-1px); /* 悬停时轻微上移 */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* 悬停时增加阴影 */
 }
 
 .toggle-icon {
