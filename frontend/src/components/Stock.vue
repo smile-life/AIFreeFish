@@ -576,10 +576,26 @@ body.custom-theme .stock-display::after {
   display: flex;
   justify-content: space-between;
   margin-bottom: var(--spacing-sm);
-  background-color: rgba(0, 0, 0, 0.2); /* 添加轻微背景色，增强层次感 */
   border-radius: var(--border-radius);
   padding: var(--spacing-sm);
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3); /* 添加内阴影，增强层次感 */
+}
+
+/* 亮色主题行样式 */
+body.light-theme .detail-row {
+  background-color: rgba(0, 0, 0, 0.05);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* 暗色主题行样式 */
+body.dark-theme .detail-row {
+  background-color: rgba(0, 0, 0, 0.2);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+/* 自定义主题行样式 - 改进的半透明效果 */
+body.custom-theme .detail-row {
+  background-color: rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.15);
 }
 
 .detail-item {
@@ -587,18 +603,9 @@ body.custom-theme .stock-display::after {
   text-align: center;
   padding: var(--spacing-sm);
   border-radius: var(--border-radius);
-  background-color: rgba(255, 255, 255, 0.07); /* 调整背景色不透明度 */
-  border: 1px solid rgba(255, 255, 255, 0.15); /* 增加边框不透明度 */
   margin: 0 var(--spacing-xs);
   transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2); /* 添加阴影 */
-  
-  &:hover {
-    background-color: rgba(255, 255, 255, 0.12); /* 悬停时增加背景色不透明度 */
-    transform: translateY(-2px); /* 悬停时轻微上移 */
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); /* 悬停时增加阴影 */
-  }
-  
+
   &.compact {
     padding: var(--spacing-xs);
     margin: 0 2px;
@@ -613,6 +620,47 @@ body.custom-theme .stock-display::after {
     }
   }
 }
+
+/* 亮色主题项目样式 */
+body.light-theme .detail-item {
+  background-color: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+body.light-theme .detail-item:hover {
+  background-color: rgba(255, 255, 255, 0.9);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* 暗色主题项目样式 */
+body.dark-theme .detail-item {
+  background-color: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+body.dark-theme .detail-item:hover {
+  background-color: rgba(255, 255, 255, 0.12);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* 自定义主题项目样式 - 改进的半透明效果 */
+body.custom-theme .detail-item {
+  background-color: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+}
+
+body.custom-theme .detail-item:hover {
+  background-color: rgba(255, 255, 255, 0.18);
+  transform: translateY(-2px);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
+}
+  
+
 
 .detail-label {
   font-size: var(--font-size-xs);
